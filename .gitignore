@@ -1,0 +1,10 @@
+*.pyc
+__pycache__
+wandb
+*.swp
+.nfs*
+/data
+/results
+/pretrained
+*.ipynb
+/artifacts
