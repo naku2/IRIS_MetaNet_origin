@@ -64,6 +64,7 @@ class NN_config:
     CONV: str = 'conv2dQ'
     bn_type: str = 'switchbn'
     biascorr: str = 'F'
+    inject_variation: bool = False
 
     def __post_init__(self):
         validate_types(self)

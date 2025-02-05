@@ -100,7 +100,7 @@ def args2config_sweep(args):
     return config
 
 
-def log(report_dict):
+def log(report_dict, model=None):
     wandb.log(report_dict)
     return
 

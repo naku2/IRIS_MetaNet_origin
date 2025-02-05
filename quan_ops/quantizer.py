@@ -6,6 +6,8 @@ import numpy as np
 import sys
 from configs.config import *
 
+from variation_injection import apply_variations
+
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)()
 
@@ -45,7 +47,12 @@ class truncquant_inference(torch.autograd.Function):
 
         out = torch.floor(input * (nb+1))
         out = torch.clamp(out, max=nb).type(torch.uint8) >> (8-k)
-        out = out/n
+        # # Variation Injection (wbit 조건 추가)
+        # if hasattr(NN_cfg, "inject_variation") and NN_cfg.inject_variation:
+        #     if k != 32:  # wbit이 32가 아닐 때만 variation 적용
+        #         out = apply_variations(out, sigma=0.5, wbit=k) 
+        # out = out/n
+
 
         return out
 

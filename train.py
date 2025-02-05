@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim
 import torch.utils.data
+import wandb
 
 import models
 import quan_ops
@@ -19,6 +20,7 @@ from misc.utils import AverageMeter, accuracy
 from torchsummary import summary
 
 from configs.config import *
+from variation_injection import apply_variations  # Import the variation injection function
 
 # Put in the MIG UUID to use the MIG instance
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -34,6 +36,7 @@ def main():
         args = all_cfg
 
     quan_ops.conv2d_quan_ops.args = args
+    #VGG args
     models.vgg.args = args
 
     weight_bit_width = list(map(int, args.weight_bit_width.split(',')))
@@ -72,9 +75,6 @@ def main():
                                         abit_list=act_bit_width,
                                         num_classes=train_data.num_classes).to(device)
 
-    # summary(model, (3, 32, 32))
-    # assert 1==2
-
     print(model)
     optimizer = get_optimizer_config(model, args.optimizer, args.lr, args.weight_decay)
     best_prec1, lr_scheduler, start_epoch = check_resume_pretrain(model, optimizer, best_gpu, results_dir)
@@ -95,8 +95,12 @@ def main():
             model.train()
             train_loss, train_prec1, train_prec5 = forward(train_loader, model, criterion, criterion_soft, epoch, True, optimizer)
             train_loss_dict, train_prec1_dict, train_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [train_loss, train_prec1, train_prec5]]
+        
         model.eval()
-        val_loss, val_prec1, val_prec5 = forward(val_loader, model, criterion, criterion_soft, epoch, False)
+        #test
+        val_loss, val_prec1, val_prec5, weight_distributions = forward(val_loader, model, criterion, criterion_soft, epoch, False)
+        #train
+        #val_loss, val_prec1, val_prec5 = forward(val_loader, model, criterion, criterion_soft, epoch, False)
         val_loss_dict, val_prec1_dict, val_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [val_loss, val_prec1, val_prec5]]
 
         if args.is_training == 'T':
@@ -131,7 +135,8 @@ def main():
                             "curr_lr": lr_scheduler.get_last_lr()[0],
                             "val_loss": val_loss_dict,
                             "val_prec1": val_prec1_dict,
-                            "val_prec5": val_prec5_dict})
+                            "val_prec5": val_prec5_dict
+                            }, model=model)
 
         for w_bw, a_bw, vl, vp1, vp5 in zip(weight_bit_width, act_bit_width, val_loss, val_prec1, val_prec5):
             tqdm.write('wbit {}, abit {}: val loss {:.2f},   val prec1 {:.2f},   val prec5 {:.2f}'.format(w_bw, a_bw, vl, vp1, vp5))
@@ -145,15 +150,27 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
     top1 = [AverageMeter() for _ in weight_bit_width]
     top5 = [AverageMeter() for _ in weight_bit_width]
 
+    # 원래 weight 저장
+    original_weights = {
+        name: layer.weight.clone() 
+        for name, layer in model.named_modules() 
+        if hasattr(layer, "weight") and isinstance(layer, (nn.Conv2d, nn.Linear))
+    }
+
     for i, (input, target) in enumerate(data_loader):
         if not training:
             with torch.no_grad():
                 input = input.to(device)
-                target = target.cuda(non_blocking=True)
+                target = target.to(device, non_blocking=True)
 
                 for w_bw, a_bw, am_l, am_t1, am_t5 in zip(weight_bit_width, act_bit_width, losses, top1, top5):
                     model.apply(lambda m: setattr(m, 'wbit', w_bw))
                     model.apply(lambda m: setattr(m, 'abit', a_bw))
+
+                    # Inject variations if enabled
+                    if hasattr(args, 'inject_variation') and args.inject_variation:
+                        apply_variations(model, sigma=0.0)                    
+
                     output = model(input)
                     loss = criterion(output, target)
 
@@ -161,9 +178,24 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     am_l.update(loss.item(), input.size(0))
                     am_t1.update(prec1.item(), input.size(0))
                     am_t5.update(prec5.item(), input.size(0))
+
+
+                    # 가중치 추출 및 wandb 기록
+                    weight_distributions = {}
+                    for name, param in model.named_parameters():
+                        if "weight" in name and "bn" not in name:
+                            weight_distributions[f"{name}_wbit_{w_bw}_abit_{a_bw}"] = wandb.Histogram(param.cpu().detach().numpy())
+
+                    # wandb에 기록
+                    wandb.log(weight_distributions, step=0)
+                    # **가중치 원상복구**
+                    for name, layer in model.named_modules():
+                        if name in original_weights:
+                            layer.weight.data.copy_(original_weights[name])
+                                        
         else:
             input = input.to(device)
-            target = target.cuda(non_blocking=True)
+            target = target.to(device, non_blocking=True)
             optimizer.zero_grad()
 
             if args.is_calibrate == "F":
@@ -214,14 +246,14 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 tqdm.write('epoch {0}, iter {1}/{2}, bit_width_max loss {3:.2f}, prec1 {4:.2f}, prec5 {5:.2f}'.format(
                     epoch, i, len(data_loader), losses[max_bw].val, top1[max_bw].val, top5[max_bw].val))
 
-    return [_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5]
+    #test
+    return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5], weight_distributions)
+    #train
+    #return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5])
 
 if __name__ == '__main__':
     if wandb_cfg.wandb_enabled:
         from wandb_ez import wandb_ez
-        # from wandb_ez.wandb_cfg import *
         run = wandb_ez.init(args, main)
-        # if wandb_cfg['sweep'] is False:
-            # main()
     else:
         main()
