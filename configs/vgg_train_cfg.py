@@ -4,14 +4,13 @@ __all__ = ["wandb_cfg_dict", "LR_cfg_dict", "NN_cfg_dict", "layer_cfg_dict"]
 
 NN_cfg_dict = {
     "log_id": "train",
-    "dataset": "imagenet",
-    "imagenet_path": "/home/a2jinhee/vol-1",
+    "dataset": "cifar10",
     "train_split": "train",
     "model": "vgg16q",
-    "workers": 8,
-    "epochs": 30,
+    "workers": 2,
+    "epochs": 150,
     "start_epoch": 0,
-    "batch_size": 256,
+    "batch_size": 128,
     "optimizer": "sgd",
     "scheduler": "multi",
     "lr": 0.01,
@@ -24,17 +23,17 @@ NN_cfg_dict = {
     "is_training": 'T',
     "is_calibrate": 'F',
     "cal_bit_width": "0",
-    "quant" : "quant_dorefa",
-    "CONV": "conv2dQ"
+    "quant" : "truncquant",
+    "CONV": "conv2dQ",
 }
 
 wandb_cfg_dict = {
     "wandb_enabled": False,
-    "key": "028a6c9f793dd46f8ead875b50784dde31c413be",
-    "entity": "a2jinhee",
-    "project": "vgg16",
+    "key": "3914394dc58eb9d88ed682d03779576f35627195",
+    "entity": "tentacion990125-sungkyunkwan-university",
+    "project": "vgg16_test",
     "resume": None,
-    "pretrain": "a2jinhee/vgg16/ed9ea6gz",
+    "pretrain": None,
     "sweep_enabled": False,
     "sweep_config": {
         "method": "grid",

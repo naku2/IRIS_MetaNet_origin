@@ -21,7 +21,7 @@ from torchsummary import summary
 from configs.config import *
 
 # Put in the MIG UUID to use the MIG instance
-os.environ["CUDA_VISIBLE_DEVICES"] = "MIG-b978da18-95fe-5992-93bb-7abcb371f386"
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 args = all_cfg
 
 def main():
@@ -34,7 +34,7 @@ def main():
         args = all_cfg
 
     quan_ops.conv2d_quan_ops.args = args
-    models.resnet_quan.args = args
+    models.vgg.args = args
 
     weight_bit_width = list(map(int, args.weight_bit_width.split(',')))
     act_bit_width = list(map(int, args.act_bit_width.split(',')))
@@ -50,6 +50,7 @@ def main():
     best_gpu = 0
     # torch.cuda.set_device(best_gpu)
     torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.enabled = True
 
     train_transform = get_transform(args.dataset, 'train')
     train_data = get_dataset(args.dataset, args.train_split, train_transform)
@@ -69,7 +70,7 @@ def main():
 
     model = models.__dict__[args.model](wbit_list=weight_bit_width, 
                                         abit_list=act_bit_width,
-                                        num_classes=train_data.num_classes).cuda()
+                                        num_classes=train_data.num_classes).to(device)
 
     # summary(model, (3, 32, 32))
     # assert 1==2
@@ -77,8 +78,8 @@ def main():
     print(model)
     optimizer = get_optimizer_config(model, args.optimizer, args.lr, args.weight_decay)
     best_prec1, lr_scheduler, start_epoch = check_resume_pretrain(model, optimizer, best_gpu, results_dir)
-    criterion = nn.CrossEntropyLoss().cuda()
-    criterion_soft = CrossEntropyLossSoft().cuda()
+    criterion = nn.CrossEntropyLoss().to(device)
+    criterion_soft = CrossEntropyLossSoft().to(device)
 
     if lr_scheduler is None:
         lr_scheduler = get_lr_scheduler(args.scheduler, optimizer, lr_decay)
@@ -147,7 +148,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
     for i, (input, target) in enumerate(data_loader):
         if not training:
             with torch.no_grad():
-                input = input.cuda()
+                input = input.to(device)
                 target = target.cuda(non_blocking=True)
 
                 for w_bw, a_bw, am_l, am_t1, am_t5 in zip(weight_bit_width, act_bit_width, losses, top1, top5):
@@ -161,7 +162,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     am_t1.update(prec1.item(), input.size(0))
                     am_t5.update(prec5.item(), input.size(0))
         else:
-            input = input.cuda()
+            input = input.to(device)
             target = target.cuda(non_blocking=True)
             optimizer.zero_grad()
 
