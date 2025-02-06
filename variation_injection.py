@@ -5,7 +5,7 @@ import torch.nn as nn
 
 def inject_variations(weights, sigma):
     # Generate lognormal variations
-    lognormal_variations = np.random.lognormal(mean=0, sigma=sigma, size=weights.shape)
+    lognormal_variations = np.random.lognormal(mean=1, sigma=sigma, size=weights.shape)
     variations = torch.tensor(lognormal_variations, dtype=weights.dtype, device=weights.device)
 
     # Variations on INT scale

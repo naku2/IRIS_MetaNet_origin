@@ -167,9 +167,10 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     model.apply(lambda m: setattr(m, 'wbit', w_bw))
                     model.apply(lambda m: setattr(m, 'abit', a_bw))
 
+                    #test
                     # Inject variations if enabled
                     if hasattr(args, 'inject_variation') and args.inject_variation:
-                        apply_variations(model, sigma=0.0)                    
+                        apply_variations(model, sigma=0.1)                    
 
                     output = model(input)
                     loss = criterion(output, target)
@@ -180,6 +181,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     am_t5.update(prec5.item(), input.size(0))
 
 
+                    #test
                     # 가중치 추출 및 wandb 기록
                     weight_distributions = {}
                     for name, param in model.named_parameters():
