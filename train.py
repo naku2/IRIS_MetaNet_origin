@@ -37,7 +37,9 @@ def main():
 
     quan_ops.conv2d_quan_ops.args = args
     #VGG args
-    models.vgg.args = args
+    #models.vgg.args = args
+    #Resnet args
+    models.resnet_quan.args = args
 
     weight_bit_width = list(map(int, args.weight_bit_width.split(',')))
     act_bit_width = list(map(int, args.act_bit_width.split(',')))
@@ -49,9 +51,9 @@ def main():
     setup_logging(os.path.join(results_dir, 'log_{}.txt'.format(hostname)))
     logging.info("running arguments: %s", args)
 
-    # best_gpu = setup_gpus()
+    #best_gpu = setup_gpus()
     best_gpu = 0
-    # torch.cuda.set_device(best_gpu)
+    #torch.cuda.set_device(best_gpu)
     torch.backends.cudnn.benchmark = True
     torch.backends.cudnn.enabled = True
 
@@ -170,7 +172,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     #test
                     # Inject variations if enabled
                     if hasattr(args, 'inject_variation') and args.inject_variation:
-                        apply_variations(model, sigma=0.1)                    
+                        apply_variations(model, sigma=0.0)                    
 
                     output = model(input)
                     loss = criterion(output, target)

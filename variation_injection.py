@@ -4,19 +4,23 @@ import torch.nn as nn
 
 
 def inject_variations(weights, sigma):
-    # Generate lognormal variations
-    lognormal_variations = np.random.lognormal(mean=1, sigma=sigma, size=weights.shape)
-    variations = torch.tensor(lognormal_variations, dtype=weights.dtype, device=weights.device)
+    """
+    Apply log-normal variations to the weights.
+    w = w_nominal * e^θ where θ ~ N(0, σ²)
+    """
+    # 정규분포 샘플링 (θ ~ N(0, σ²))
+    theta = np.random.normal(loc=0, scale=sigma, size=weights.shape)
 
-    # Variations on INT scale
-    # Instead of addition, use multiplication to reflect realistic variations
+    # 지수 변환하여 w = w_nominal * e^θ 생성
+    variations = torch.exp(torch.tensor(theta, dtype=weights.dtype, device=weights.device))
+
+    # 변동된 가중치 생성
     noisy_weights = weights * variations
     return noisy_weights
 
-
 def apply_variations(model, sigma):
     """
-    Apply variations to all Conv2d and Linear layers, excluding non-quantized weights.
+    Apply variations to all Conv2d and Linear layers.
     """
     with torch.no_grad():
         for name, layer in model.named_modules():

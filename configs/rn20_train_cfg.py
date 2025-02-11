@@ -37,10 +37,10 @@ LR_cfg_dict = {
 }
 
 wandb_cfg_dict = {
-    "wandb_enabled": True,
-    "key": "028a6c9f793dd46f8ead875b50784dde31c413be",
-    "entity": "iris_metanet",
-    "project": "0512",
+    "wandb_enabled": False,
+    "key": "3914394dc58eb9d88ed682d03779576f35627195",
+    "entity": "tentacion990125-sungkyunkwan-university",
+    "project": "vgg16_test",
     "resume": None,
     "pretrain": None,
     "sweep_enabled": False,
