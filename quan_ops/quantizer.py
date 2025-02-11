@@ -51,7 +51,8 @@ class truncquant_inference(torch.autograd.Function):
         # if hasattr(NN_cfg, "inject_variation") and NN_cfg.inject_variation:
         #     if k != 32:  # wbit이 32가 아닐 때만 variation 적용
         #         out = apply_variations(out, sigma=0.5, wbit=k) 
-        # out = out/n
+        
+        out = out/n
 
 
         return out

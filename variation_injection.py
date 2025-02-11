@@ -24,7 +24,7 @@ def apply_variations(model, sigma):
     """
     with torch.no_grad():
         for name, layer in model.named_modules():
-            if isinstance(layer, (nn.Conv2d, nn.Linear)):
+            if isinstance(layer, nn.Conv2d):
                 layer.weight.data = inject_variations(layer.weight.data, sigma=sigma)
 
 # 여긴 양자화 하고 쓰기

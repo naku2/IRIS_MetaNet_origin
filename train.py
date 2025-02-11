@@ -37,9 +37,9 @@ def main():
 
     quan_ops.conv2d_quan_ops.args = args
     #VGG args
-    #models.vgg.args = args
+    models.vgg.args = args
     #Resnet args
-    models.resnet_quan.args = args
+    #models.resnet_quan.args = args
 
     weight_bit_width = list(map(int, args.weight_bit_width.split(',')))
     act_bit_width = list(map(int, args.act_bit_width.split(',')))
@@ -160,6 +160,10 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
     }
 
     for i, (input, target) in enumerate(data_loader):
+        # #train
+        if hasattr(args, 'inject_variation') and args.inject_variation:
+            apply_variations(model, sigma=0.5)
+
         if not training:
             with torch.no_grad():
                 input = input.to(device)
@@ -169,10 +173,10 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     model.apply(lambda m: setattr(m, 'wbit', w_bw))
                     model.apply(lambda m: setattr(m, 'abit', a_bw))
 
-                    #test
-                    # Inject variations if enabled
-                    if hasattr(args, 'inject_variation') and args.inject_variation:
-                        apply_variations(model, sigma=0.0)                    
+                    # #test
+                    # #Inject variations if enabled
+                    # if hasattr(args, 'inject_variation') and args.inject_variation:
+                    #     apply_variations(model, sigma=0.5)                    
 
                     output = model(input)
                     loss = criterion(output, target)
@@ -183,8 +187,8 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     am_t5.update(prec5.item(), input.size(0))
 
 
-                    #test
-                    # 가중치 추출 및 wandb 기록
+                    # #test
+                    # #가중치 추출 및 wandb 기록
                     weight_distributions = {}
                     for name, param in model.named_parameters():
                         if "weight" in name and "bn" not in name:

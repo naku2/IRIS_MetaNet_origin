@@ -19,7 +19,7 @@ NN_cfg_dict = {
     "print_freq": 20,
     "pretrain": None,
     "weight_bit_width": "1,2,4,8,32",
-    "act_bit_width": "1,2,4,8,32",
+    "act_bit_width": "4,4,4,4,32",
     "is_training": 'T',
     "is_calibrate": 'F',
     "cal_bit_width": "0",
