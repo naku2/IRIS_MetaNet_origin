@@ -21,6 +21,7 @@ from torchsummary import summary
 
 from configs.config import *
 from variation_injection import apply_variations  # Import the variation injection function
+from lipschitz_regularization import custom_loss  # Import the lipschitz regularization function
 
 # Put in the MIG UUID to use the MIG instance
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -152,12 +153,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
     top1 = [AverageMeter() for _ in weight_bit_width]
     top5 = [AverageMeter() for _ in weight_bit_width]
 
-    # 원래 weight 저장
-    original_weights = {
-        name: layer.weight.clone() 
-        for name, layer in model.named_modules() 
-        if hasattr(layer, "weight") and isinstance(layer, (nn.Conv2d, nn.Linear))
-    }
+    
 
     for i, (input, target) in enumerate(data_loader):
         # #train
@@ -169,6 +165,13 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 input = input.to(device)
                 target = target.to(device, non_blocking=True)
 
+                # 원래 weight 저장
+                original_weights = {
+                    name: layer.weight.clone() 
+                    for name, layer in model.named_modules() 
+                    if hasattr(layer, "weight") and isinstance(layer, (nn.Conv2d))
+                }
+
                 for w_bw, a_bw, am_l, am_t1, am_t5 in zip(weight_bit_width, act_bit_width, losses, top1, top5):
                     model.apply(lambda m: setattr(m, 'wbit', w_bw))
                     model.apply(lambda m: setattr(m, 'abit', a_bw))
@@ -176,13 +179,14 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     # #test
                     # #Inject variations if enabled
                     if hasattr(args, 'inject_variation') and args.inject_variation:
-                        apply_variations(model, sigma=0.09)                    
+                        apply_variations(model, sigma=0.1)                    
 
                     output = model(input)
                     loss = criterion(output, target)
 
-                    if hasattr(args, 'inject_variation') and args.inject_variation:
-                        loss += custom_loss(model, lambda_val)
+                    # # #test
+                    # if hasattr(args, 'inject_variation') and args.inject_variation:
+                    #     loss += custom_loss(model, sigma=0.1)
 
                     prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
                     am_l.update(loss.item(), input.size(0))
@@ -199,7 +203,9 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
 
                     # wandb에 기록
                     wandb.log(weight_distributions, step=0)
-                    # **가중치 원상복구**
+
+                    # # all
+                    # # **가중치 원상복구**
                     for name, layer in model.named_modules():
                         if name in original_weights:
                             layer.weight.data.copy_(original_weights[name])
@@ -220,6 +226,10 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 output = model(input)
                 #print("output.shape:", output.shape)
                 loss = criterion(output, target)
+
+                # # #train
+                # if hasattr(args, 'inject_variation') and args.inject_variation:
+                #     loss += custom_loss(model, sigma=0.1)
                 
                 loss.backward()
                 prec1, prec5 = accuracy(output.data, target, topk=(1, 5))

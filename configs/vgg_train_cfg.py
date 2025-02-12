@@ -25,6 +25,7 @@ NN_cfg_dict = {
     "cal_bit_width": "0",
     "quant" : "truncquant",
     "CONV": "conv2dQ",
+    "inject_variation": True
 }
 
 wandb_cfg_dict = {
