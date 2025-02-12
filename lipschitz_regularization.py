@@ -17,14 +17,11 @@ def lipschitz_regularization_loss(model, sigma, beta=0.01):
     regularization_loss = 0
     
     for layer in model.modules():
-        if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
+        if isinstance(layer, nn.Conv2d):
             weights = layer.weight  # Get layer weights
 
             # Reshape Conv2D filters into 2D matrix
-            if isinstance(layer, nn.Conv2d):
-                weights_reshaped = weights.view(weights.shape[0], -1)
-            else:
-                weights_reshaped = weights
+            weights_reshaped = weights.view(weights.shape[0], -1)
 
             # Compute W^T * W
             W_T_W = torch.matmul(weights_reshaped.t(), weights_reshaped)

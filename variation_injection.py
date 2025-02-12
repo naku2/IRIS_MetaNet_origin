@@ -32,11 +32,13 @@ def apply_variations(model, sigma):
 #     """
 #     Inject variations into the weights (tensor level).
 #     """
-#     # ✅ Log-normal variations 생성
-#     lognormal_variations = np.random.lognormal(mean=0, sigma=sigma, size=weights.shape)
-#     variations = torch.tensor(lognormal_variations, dtype=weights.dtype, device=weights.device)
+#    # 정규분포 샘플링 (θ ~ N(0, σ²))
+#     theta = np.random.normal(loc=0, scale=sigma, size=weights.shape)
 
-#     # ✅ 변동량을 곱하여 variation 주입
+#     # 지수 변환하여 w = w_nominal * e^θ 생성
+#     variations = torch.exp(torch.tensor(theta, dtype=weights.dtype, device=weights.device))
+
+#     # 변동량을 곱하여 variation 주입
 #     noisy_weights = weights * (1 + scale_factor * (variations - 1))
 #     return noisy_weights
 
