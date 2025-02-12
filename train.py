@@ -161,8 +161,8 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
 
     for i, (input, target) in enumerate(data_loader):
         # #train
-        if hasattr(args, 'inject_variation') and args.inject_variation:
-            apply_variations(model, sigma=0.5)
+        # if hasattr(args, 'inject_variation') and args.inject_variation:
+        #     apply_variations(model, sigma=0.5)
 
         if not training:
             with torch.no_grad():
@@ -175,11 +175,14 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
 
                     # #test
                     # #Inject variations if enabled
-                    # if hasattr(args, 'inject_variation') and args.inject_variation:
-                    #     apply_variations(model, sigma=0.5)                    
+                    if hasattr(args, 'inject_variation') and args.inject_variation:
+                        apply_variations(model, sigma=0.09)                    
 
                     output = model(input)
                     loss = criterion(output, target)
+
+                    if hasattr(args, 'inject_variation') and args.inject_variation:
+                        loss += custom_loss(model, lambda_val)
 
                     prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
                     am_l.update(loss.item(), input.size(0))
