@@ -101,9 +101,9 @@ def main():
         
         model.eval()
         #test
-        val_loss, val_prec1, val_prec5, weight_distributions = forward(val_loader, model, criterion, criterion_soft, epoch, False)
+        #val_loss, val_prec1, val_prec5, weight_distributions = forward(val_loader, model, criterion, criterion_soft, epoch, False)
         #train
-        #val_loss, val_prec1, val_prec5 = forward(val_loader, model, criterion, criterion_soft, epoch, False)
+        val_loss, val_prec1, val_prec5 = forward(val_loader, model, criterion, criterion_soft, epoch, False)
         val_loss_dict, val_prec1_dict, val_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [val_loss, val_prec1, val_prec5]]
 
         if args.is_training == 'T':
@@ -156,10 +156,6 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
     
 
     for i, (input, target) in enumerate(data_loader):
-        # #train
-        # if hasattr(args, 'inject_variation') and args.inject_variation:
-        #     apply_variations(model, sigma=0.5)
-
         if not training:
             with torch.no_grad():
                 input = input.to(device)
@@ -176,17 +172,13 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     model.apply(lambda m: setattr(m, 'wbit', w_bw))
                     model.apply(lambda m: setattr(m, 'abit', a_bw))
 
-                    # #test
+                    # #all
                     # #Inject variations if enabled
                     if hasattr(args, 'inject_variation') and args.inject_variation:
                         apply_variations(model, sigma=0.1)                    
 
                     output = model(input)
                     loss = criterion(output, target)
-
-                    # # #test
-                    # if hasattr(args, 'inject_variation') and args.inject_variation:
-                    #     loss += custom_loss(model, sigma=0.1)
 
                     prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
                     am_l.update(loss.item(), input.size(0))
@@ -196,13 +188,13 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
 
                     # #test
                     # #가중치 추출 및 wandb 기록
-                    weight_distributions = {}
-                    for name, param in model.named_parameters():
-                        if "weight" in name and "bn" not in name:
-                            weight_distributions[f"{name}_wbit_{w_bw}_abit_{a_bw}"] = wandb.Histogram(param.cpu().detach().numpy())
+                    # weight_distributions = {}
+                    # for name, param in model.named_parameters():
+                    #     if "weight" in name and "bn" not in name:
+                    #         weight_distributions[f"{name}_wbit_{w_bw}_abit_{a_bw}"] = wandb.Histogram(param.cpu().detach().numpy())
 
-                    # wandb에 기록
-                    wandb.log(weight_distributions, step=0)
+                    # # wandb에 기록
+                    # wandb.log(weight_distributions, step=0)
 
                     # # all
                     # # **가중치 원상복구**
@@ -211,6 +203,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                             layer.weight.data.copy_(original_weights[name])
                                         
         else:
+
             input = input.to(device)
             target = target.to(device, non_blocking=True)
             optimizer.zero_grad()
@@ -226,10 +219,6 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 output = model(input)
                 #print("output.shape:", output.shape)
                 loss = criterion(output, target)
-
-                # # #train
-                # if hasattr(args, 'inject_variation') and args.inject_variation:
-                #     loss += custom_loss(model, sigma=0.1)
                 
                 loss.backward()
                 prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
@@ -253,6 +242,11 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     loss = criterion(output, target)
                 else:
                     loss = criterion_soft(output, target_soft)
+
+                # #train
+                if hasattr(args, 'inject_variation') and args.inject_variation:
+                    loss += custom_loss(model, sigma=0.1)
+
                 loss.backward()
                 target_soft = torch.nn.functional.softmax(output.detach(), dim=1)
 
@@ -268,9 +262,9 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     epoch, i, len(data_loader), losses[max_bw].val, top1[max_bw].val, top5[max_bw].val))
 
     #test
-    return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5], weight_distributions)
+    #return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5], weight_distributions)
     #train
-    #return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5])
+    return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5])
 
 if __name__ == '__main__':
     if wandb_cfg.wandb_enabled:
