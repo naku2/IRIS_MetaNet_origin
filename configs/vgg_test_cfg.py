@@ -23,7 +23,7 @@ NN_cfg_dict = {
     "is_training": 'F',
     "is_calibrate": 'F',
     "cal_bit_width": "0",
-    "quant" : "truncquant_inference",
+    "quant" : "quant_dorefa",
     "CONV": "conv2dQ",
     "inject_variation": True
 }

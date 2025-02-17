@@ -6,15 +6,15 @@ NN_cfg_dict = {
     "log_id": "train",
     "dataset": "cifar10",
     "train_split": "train",
-    "model": "vgg16q",
+    "model": "vgg16q_bn",
     "workers": 2,
-    "epochs": 150,
+    "epochs": 250,
     "start_epoch": 0,
     "batch_size": 128,
     "optimizer": "sgd",
     "scheduler": "multi",
-    "lr": 0.01,
-    "lr_decay": "10,15,25",
+    "lr": 0.1,
+    "lr_decay": "20,40,60",
     "weight_decay": 1e-5,
     "print_freq": 20,
     "pretrain": None,
@@ -23,9 +23,9 @@ NN_cfg_dict = {
     "is_training": 'T',
     "is_calibrate": 'F',
     "cal_bit_width": "0",
-    "quant" : "truncquant",
+    "quant" : "quant_dorefa",
     "CONV": "conv2dQ",
-    "inject_variation": True
+    "inject_variation": False
 }
 
 wandb_cfg_dict = {
