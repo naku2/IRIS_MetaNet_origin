@@ -13,7 +13,7 @@ NN_cfg_dict = {
     "batch_size": 128,
     "optimizer": "sgd",
     "scheduler": "multi",
-    "lr": 0.1,
+    "lr": 0.01,
     "lr_decay": "20,40,60",
     "weight_decay": 1e-5,
     "print_freq": 20,
