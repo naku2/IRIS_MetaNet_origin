@@ -243,7 +243,7 @@ class VGG16_BN(nn.Module):
 
 #New
 class ConvBNActivate(nn.Module):
-    """양자화된 Conv2D + ReLU + BatchNorm 블록 (TensorFlow 구조 반영)"""
+    """양자화된 Conv2D + ReLU + BatchNorm + Dropout 블록 (TensorFlow 구조 반영)"""
     def __init__(self, wbit_list, abit_list, in_channels, out_channels, drop_rate=0.4, apply_dropout=True):
         super(ConvBNActivate, self).__init__()
         self.wbit_list = wbit_list
@@ -252,9 +252,7 @@ class ConvBNActivate(nn.Module):
         wbit = wbit_list[-1]
         abit = abit_list[-1]
 
-        #self.conv = conv2d_quantize_fn(self.wbit_list, self.abit_list)(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
-        #self.relu = Activate(self.abit_list)  # 양자화된 활성화 함수 (ReLU 포함)
         self.relu = nn.ReLU(inplace=True)
         self.bn = nn.BatchNorm2d(out_channels)
         self.drop_rate = drop_rate
@@ -265,8 +263,10 @@ class ConvBNActivate(nn.Module):
         x = self.conv(x)
         x = self.relu(x)
         x = self.bn(x)
-        x = self.dropout(x)
+        if self.apply_dropout:
+            x = self.dropout(x)
         return x
+
 
 
 class VGG16Q_BN(nn.Module):
@@ -305,20 +305,16 @@ class VGG16Q_BN(nn.Module):
         # Fully Connected Classifier
         self.classifier = nn.Sequential(
             nn.Dropout(0.5),
+            nn.Flatten(),
             nn.Linear(512 * 1 * 1, 512),
             nn.ReLU(inplace=True),
             nn.BatchNorm1d(512),
-            
             nn.Dropout(0.5),
-            nn.Linear(512, 512),
-            nn.ReLU(inplace=True),
-
-            nn.Linear(512, num_classes)
+            nn.Linear(512, num_classes),
         )
 
     def forward(self, x):
         x = self.features(x)
-        x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
 

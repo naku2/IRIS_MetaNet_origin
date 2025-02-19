@@ -153,8 +153,6 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
     top1 = [AverageMeter() for _ in weight_bit_width]
     top5 = [AverageMeter() for _ in weight_bit_width]
 
-    
-
     for i, (input, target) in enumerate(data_loader):
         if not training:
             with torch.no_grad():

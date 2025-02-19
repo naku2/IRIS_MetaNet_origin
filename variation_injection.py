@@ -9,7 +9,7 @@ def inject_variations(weights, sigma):
     w = w_nominal * e^θ where θ ~ N(0, σ²)
     """
     # 정규분포 샘플링 (θ ~ N(0, σ²))
-    theta = np.random.normal(loc=0, scale=sigma, size=weights.shape)
+    theta = torch.random.normal(loc=0, scale=sigma, size=weights.shape)
 
     # 지수 변환하여 w = w_nominal * e^θ 생성
     variations = torch.exp(torch.tensor(theta, dtype=weights.dtype, device=weights.device))
