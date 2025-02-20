@@ -36,7 +36,7 @@ def lipschitz_regularization_loss(model, sigma, beta=0.01):
     
     return regularization_loss
 
-def custom_loss(model, sigma, beta=0.01):
+def custom_loss(model, sigma, beta):
     """
     Compute Lipschitz regularization loss to be added to the primary loss.
     
