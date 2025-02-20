@@ -22,6 +22,7 @@ from torchsummary import summary
 from configs.config import *
 from variation_injection import apply_variations  # Import the variation injection function
 from lipschitz_regularization import custom_loss  # Import the lipschitz regularization function
+from torch.quantization import get_default_qat_qconfig, prepare_qat, convert
 
 # Put in the MIG UUID to use the MIG instance
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -101,9 +102,9 @@ def main():
         
         model.eval()
         #test
-        val_loss, val_prec1, val_prec5, weight_distributions = forward(val_loader, model, criterion, criterion_soft, epoch, False)
+        #val_loss, val_prec1, val_prec5, weight_distributions = forward(val_loader, model, criterion, criterion_soft, epoch, False)
         #train
-        #val_loss, val_prec1, val_prec5 = forward(val_loader, model, criterion, criterion_soft, epoch, False)
+        val_loss, val_prec1, val_prec5 = forward(val_loader, model, criterion, criterion_soft, epoch, False)
         val_loss_dict, val_prec1_dict, val_prec5_dict = [{bw: loss for bw, loss in zip(weight_bit_width, values)} for values in [val_loss, val_prec1, val_prec5]]
 
         if args.is_training == 'T':
@@ -115,7 +116,7 @@ def main():
             is_best = val_prec1[-1] > best_prec1 if best_prec1 is not None else True
             best_prec1 = max(val_prec1[-1], best_prec1) if best_prec1 is not None else val_prec1[-1]
             save_ckpt(epoch, model, best_prec1, optimizer, is_best, path=results_dir + '/ckpt')
-            
+                     
             max_bw = -1 if args.is_calibrate == "F" else cal_bw[-1] - 1
             tqdm.write('Epoch {}: \ntrain loss {:.2f}, train prec1 {:.2f}, train prec5 {:.2f}\n'
                         '  val loss {:.2f},   val prec1 {:.2f},   val prec5 {:.2f}'.format(epoch, 
@@ -172,8 +173,8 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
 
                     # # #all
                     # # #Inject variations if enabled
-                    if hasattr(args, 'inject_variation') and args.inject_variation:
-                        apply_variations(model, sigma=0.3)                    
+                    # if hasattr(args, 'inject_variation') and args.inject_variation:
+                    #     apply_variations(model, sigma=0.3)                    
 
                     output = model(input)
                     loss = criterion(output, target)
@@ -186,13 +187,13 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
 
                     # #test
                     # #가중치 추출 및 wandb 기록
-                    weight_distributions = {}
-                    for name, param in model.named_parameters():
-                        if "weight" in name and "bn" not in name:
-                            weight_distributions[f"{name}_wbit_{w_bw}_abit_{a_bw}"] = wandb.Histogram(param.cpu().detach().numpy())
+                    # weight_distributions = {}
+                    # for name, param in model.named_parameters():
+                    #     if "weight" in name and "bn" not in name:
+                    #         weight_distributions[f"{name}_wbit_{w_bw}_abit_{a_bw}"] = wandb.Histogram(param.cpu().detach().numpy())
 
-                    # wandb에 기록
-                    wandb.log(weight_distributions, step=0)
+                    # # wandb에 기록
+                    # wandb.log(weight_distributions, step=0)
 
                     # # all
                     # # **가중치 원상복구**
@@ -260,9 +261,9 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     epoch, i, len(data_loader), losses[max_bw].val, top1[max_bw].val, top5[max_bw].val))
 
     #test
-    return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5], weight_distributions)
+    #return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5], weight_distributions)
     #train
-    #return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5])
+    return ([_.avg for _ in losses], [_.avg for _ in top1], [_.avg for _ in top5])
 
 if __name__ == '__main__':
     if wandb_cfg.wandb_enabled:

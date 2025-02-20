@@ -171,10 +171,16 @@ cfgs = {
 
 #New
 class ConvBNReLU(nn.Module):
-    """Conv2D + ReLU + BatchNorm 블록 (TensorFlow 모델과 동일)"""
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, drop_rate=0.4, apply_dropout=True):
+    """양자화된 Conv2D + ReLU + BatchNorm + Dropout 블록 (TensorFlow 구조 반영)"""
+    def __init__(self, wbit_list, abit_list, in_channels, out_channels, drop_rate=0.4, apply_dropout=True):
         super(ConvBNReLU, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=False)
+        self.wbit_list = wbit_list
+        self.abit_list = abit_list
+
+        wbit = wbit_list[-1]
+        abit = abit_list[-1]
+
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
         self.relu = nn.ReLU(inplace=True)
         self.bn = nn.BatchNorm2d(out_channels)
         self.drop_rate = drop_rate
@@ -185,58 +191,57 @@ class ConvBNReLU(nn.Module):
         x = self.conv(x)
         x = self.relu(x)
         x = self.bn(x)
-        x = self.dropout(x)
+        if self.apply_dropout:
+            x = self.dropout(x)
         return x
 
 #New
 class VGG16_BN(nn.Module):
-    """TensorFlow 모델과 동일한 구조의 VGG16 (PyTorch)"""
-    def __init__(self, num_classes=10):
+    """TensorFlow 구조를 반영한 VGG16Q 모델 (양자화 포함)"""
+    def __init__(self, wbit_list, abit_list, num_classes=10):
         super(VGG16_BN, self).__init__()
-        
+        self.wbit_list = wbit_list
+        self.abit_list = abit_list
+
         # Feature Extractor
         self.features = nn.Sequential(
-            ConvBNReLU(3, 64, drop_rate=0.3),  # Dropout 추가
-            ConvBNReLU(64, 64, apply_dropout=False),
+            ConvBNReLU(wbit_list, abit_list, 3, 64, drop_rate=0.3),
+            ConvBNReLU(wbit_list, abit_list, 64, 64, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNReLU(64, 128),
-            ConvBNReLU(128, 128, apply_dropout=False),
+            ConvBNReLU(wbit_list, abit_list, 64, 128),
+            ConvBNReLU(wbit_list, abit_list, 128, 128, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNReLU(128, 256),
-            ConvBNReLU(256, 256),
-            ConvBNReLU(256, 256, apply_dropout=False),
+            ConvBNReLU(wbit_list, abit_list, 128, 256),
+            ConvBNReLU(wbit_list, abit_list, 256, 256),
+            ConvBNReLU(wbit_list, abit_list, 256, 256, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNReLU(256, 512),
-            ConvBNReLU(512, 512),
-            ConvBNReLU(512, 512, apply_dropout=False),
+            ConvBNReLU(wbit_list, abit_list, 256, 512),
+            ConvBNReLU(wbit_list, abit_list, 512, 512),
+            ConvBNReLU(wbit_list, abit_list, 512, 512, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNReLU(512, 512),
-            ConvBNReLU(512, 512),
-            ConvBNReLU(512, 512, apply_dropout=False),
+            ConvBNReLU(wbit_list, abit_list, 512, 512),
+            ConvBNReLU(wbit_list, abit_list, 512, 512),
+            ConvBNReLU(wbit_list, abit_list, 512, 512, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Dropout(0.5),
         )
 
         # Fully Connected Classifier
         self.classifier = nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Flatten(),
             nn.Linear(512 * 1 * 1, 512),
             nn.ReLU(inplace=True),
-            nn.BatchNorm1d(512),  # FC 레이어에도 BN 적용
-            
+            nn.BatchNorm1d(512),
             nn.Dropout(0.5),
-            nn.Linear(512, 512),
-            nn.ReLU(inplace=True),
-
-            nn.Linear(512, num_classes)
+            nn.Linear(512, num_classes),
         )
 
     def forward(self, x):
         x = self.features(x)
-        x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
 
@@ -251,9 +256,10 @@ class ConvBNActivate(nn.Module):
 
         wbit = wbit_list[-1]
         abit = abit_list[-1]
+        Conv2d = conv2d_quantize_fn(self.wbit_list, self.abit_list)
 
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
-        self.relu = nn.ReLU(inplace=True)
+        self.conv = Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
+        self.relu = Activate(self.abit_list)
         self.bn = nn.BatchNorm2d(out_channels)
         self.drop_rate = drop_rate
         self.apply_dropout = apply_dropout
