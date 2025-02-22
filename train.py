@@ -184,13 +184,13 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     # if hasattr(args, 'inject_variation') and args.inject_variation:
                     #     apply_variations(model, sigma=0.9)                    
 
-                    # output = model(input)
-                    # loss = criterion(output, target)
+                    output = model(input)
+                    loss = criterion(output, target)
 
-                    # prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
-                    # am_l.update(loss.item(), input.size(0))
-                    # am_t1.update(prec1.item(), input.size(0))
-                    # am_t5.update(prec5.item(), input.size(0))
+                    prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
+                    am_l.update(loss.item(), input.size(0))
+                    am_t1.update(prec1.item(), input.size(0))
+                    am_t5.update(prec5.item(), input.size(0))
 
 
                     # # #test
@@ -252,7 +252,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
 
                 # #train(lipschitz)
                 if hasattr(args, 'inject_variation') and args.inject_variation:
-                    loss += custom_loss(model, sigma=0.9, beta=beta)
+                    loss += custom_loss(model, sigma=0.5, beta=beta)
 
                 loss.backward()
                 target_soft = torch.nn.functional.softmax(output.detach(), dim=1)
