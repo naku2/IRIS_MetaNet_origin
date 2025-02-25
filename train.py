@@ -168,12 +168,12 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 input = input.to(device)
                 target = target.to(device, non_blocking=True)
 
-                # 원래 weight 저장
-                original_weights = {
-                    name: layer.weight.clone() 
-                    for name, layer in model.named_modules() 
-                    if hasattr(layer, "weight") and isinstance(layer, (nn.Conv2d))
-                }
+                # # 원래 weight 저장
+                # original_weights = {
+                #     name: layer.weight.clone() 
+                #     for name, layer in model.named_modules() 
+                #     if hasattr(layer, "weight") and isinstance(layer, (nn.Conv2d))
+                # }
 
                 for w_bw, a_bw, am_l, am_t1, am_t5 in zip(weight_bit_width, act_bit_width, losses, top1, top5):
                     model.apply(lambda m: setattr(m, 'wbit', w_bw))
@@ -203,11 +203,11 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                     # # wandb에 기록
                     # wandb.log(weight_distributions, step=0)
 
-                    # # all
-                    # # **가중치 원상복구**
-                    for name, layer in model.named_modules():
-                        if name in original_weights:
-                            layer.weight.data.copy_(original_weights[name])
+                    # # # all
+                    # # # **가중치 원상복구**
+                    # for name, layer in model.named_modules():
+                    #     if name in original_weights:
+                    #         layer.weight.data.copy_(original_weights[name])
                                         
         else:
 
@@ -250,9 +250,9 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 else:
                     loss = criterion_soft(output, target_soft)
 
-                # #train(lipschitz)
-                if hasattr(args, 'inject_variation') and args.inject_variation:
-                    loss += custom_loss(model, sigma=0.5, beta=beta)
+                # # #train(lipschitz)
+                # if hasattr(args, 'inject_variation') and args.inject_variation:
+                #     loss += custom_loss(model, sigma=0.5, beta=beta)
 
                 loss.backward()
                 target_soft = torch.nn.functional.softmax(output.detach(), dim=1)

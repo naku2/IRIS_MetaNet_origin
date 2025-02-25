@@ -29,5 +29,5 @@ def get_lr_scheduler(name, optimizer, lr_decay, last_epoch=-1):
     elif name == 'cosine':
         lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
     elif name == 'new':
-        lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=list(range(20, 250, 20)), gamma=0.5, last_epoch=last_epoch)
+        lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=list(range(20, 250, 20)), gamma=0.3, last_epoch=last_epoch)
     return lr_scheduler
