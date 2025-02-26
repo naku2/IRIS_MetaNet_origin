@@ -223,28 +223,24 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 # loss = 0.015 * KurtosisLoss(model)
                 # loss.backward()
 
-                #Quantizing training
-                # BatchNorm을 고정하여 학습 중 변하지 않도록 설정
-                for m in model.modules():
-                    if isinstance(m, torch.nn.BatchNorm2d):
-                        m.track_running_stats = True  # BatchNorm 통계 유지
-                        m.eval()  # BatchNorm을 평가 모드로 설정하여 변화 방지
-
                 output = model(input)
                 #print("output.shape:", output.shape)
                 loss = criterion(output, target)
                 
                 loss.backward()
-                #Quantizing training
-                # Gradient Clipping 추가 (Gradient 폭발 방지)
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                # #Quantizing training
+                # # Gradient Clipping 추가 (Gradient 폭발 방지)
+                # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.01)
 
                 prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
                 losses[-1].update(loss.item(), input.size(0))
                 top1[-1].update(prec1.item(), input.size(0))
                 top5[-1].update(prec5.item(), input.size(0))
-
-                target_soft = torch.nn.functional.softmax(output.detach(), dim=1)
+                
+                #wait
+                # target_soft = torch.nn.functional.softmax(output.detach(), dim=1)
+                temperature = 4.0  # 🔥 Temperature Scaling 추가
+                soft_target = torch.nn.functional.softmax(output.detach() / temperature, dim=1)
 
             # train less-bit-wdith models
             for w_bw, a_bw, am_l, am_t1, am_t5 in zip(weight_bit_width[:-1][::-1], act_bit_width[:-1][::-1], losses[:-1][::-1], top1[:-1][::-1], top5[:-1][::-1]):
@@ -256,19 +252,27 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 model.apply(lambda m: setattr(m, 'abit', a_bw))
 
                 output = model(input)
-                if args.is_calibrate == "T":
-                    loss = criterion(output, target)
-                else:
-                    loss = criterion_soft(output, target_soft)
+                #wait
+                # if args.is_calibrate == "T":
+                #     loss = criterion(output, target)
+                # else:
+                #     loss = criterion_soft(output, target_soft)
 
                 # # #train(lipschitz)
                 # if hasattr(args, 'inject_variation') and args.inject_variation:
                 #     loss += custom_loss(model, sigma=0.5, beta=beta)
 
+                # ✅✅✅✅✅✅✅✅ wait KD Loss 적용 (Soft Target 활용)
+                kd_loss = torch.nn.KLDivLoss()(torch.log_softmax(output, dim=1), soft_target)
+                ce_loss = criterion(output, target)
+                alpha = 0.3  # 🔥 KD 가중치 조정
+
+                loss = (1 - alpha) * ce_loss + alpha * kd_loss  # 🔥 CE Loss + KD Loss 결합
+
                 loss.backward()
-                #Quantizing training
-                # Gradient Clipping 추가 (Gradient 폭발 방지)
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.1)
+                # #Quantizing training
+                # # Gradient Clipping 추가 (Gradient 폭발 방지)
+                # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.1)
 
                 target_soft = torch.nn.functional.softmax(output.detach(), dim=1)
 
