@@ -5,6 +5,7 @@ def calculate_lambda(sigma, k=1.0):
     """
     Calculate the upper bound for Lipschitz constant based on sigma.
     """
+    sigma = torch.tensor(sigma, dtype=torch.float32) if not isinstance(sigma, torch.Tensor) else sigma  # Tensor 변환 추가
     lambda_val = k / (torch.exp(sigma**2 / 2) + 3 * torch.sqrt((torch.exp(sigma**2) - 1) * torch.exp(sigma**2)))
     return lambda_val
 

@@ -17,7 +17,7 @@ NN_cfg_dict = {
     "lr_decay": "10,15,25",
     "weight_decay": 1e-5,
     "print_freq": 20,
-    "pretrain": "/root/IRIS_MetaNet_origin/results/train_20250220_123546/ckpt/model_latest.pth.tar",
+    "pretrain": "/root/IRIS_MetaNet_origin/lipschitz0,9beta0,05.tar",
     "weight_bit_width": "32",
     "act_bit_width": "32",
     "is_training": 'F',
