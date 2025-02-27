@@ -160,7 +160,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
     # max_beta = 0.1
     # T_max = args.epochs  # 전체 에포크 수
     # beta = initial_beta + (max_beta - initial_beta) * 0.5 * (1 - torch.cos(torch.tensor(epoch / T_max * 3.141592653589793)))
-    beta = 0.01
+    beta = 0.05
 
     for i, (input, target) in enumerate(data_loader):
         if not training:
@@ -225,7 +225,7 @@ def forward(data_loader, model, criterion, criterion_soft, epoch, training=True,
                 
                 #train(lipschitz)
                 if hasattr(args, 'inject_variation') and args.inject_variation:
-                    loss += custom_loss(model, sigma=0.5, beta=beta)
+                    loss += custom_loss(model, sigma=0.9, beta=beta)
 
                 loss.backward()
 
