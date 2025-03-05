@@ -14,14 +14,22 @@ def str_to_class(classname):
 class quant_dorefa(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, k):
-      n = float(2**k - 1)
-      out = torch.round(input * n) / n
-      return out
+        n = float(2**k - 1)
+        # # origin
+        # out = torch.round(input * n) / n
+
+        # # Variation Injection (wbit 조건 추가)
+        out = torch.round(input * n)
+        if hasattr(NN_cfg, "inject_variation") and NN_cfg.inject_variation:
+            out = apply_variations(out, sigma=0.0, wbit=k) 
+            out = out / n
+
+        return out
 
     @staticmethod
     def backward(ctx, grad_output):
-      grad_input = grad_output.clone()
-      return grad_input, None
+        grad_input = grad_output.clone()
+        return grad_input, None
 
 class truncquant(torch.autograd.Function):
     @staticmethod
