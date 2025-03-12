@@ -18,21 +18,26 @@ def inject_variations(weights, sigma):
     noisy_weights = weights * variations
     return noisy_weights
 
-# def apply_variations(model, sigma):
-#     """
-#     Apply variations to all Conv2d and Linear layers.
-#     """
-#     with torch.no_grad():
-#         for name, layer in model.named_modules():
-#             if isinstance(layer, (nn.Conv2d, nn.Linear)):
-#                 layer.weight.data = inject_variations(layer.weight.data, sigma=sigma)
-
-#여긴 양자화 하고 쓰기
 def apply_variations(model, sigma):
     """
-    Apply variations to quantized weights at tensor level.
+    Apply variations to all Conv2d and Linear layers.
     """
     with torch.no_grad():
         for name, layer in model.named_modules():
-            if isinstance(layer, nn.Linear):
+            if isinstance(layer, (nn.Conv2d, nn.Linear)):
+                # ✅ 첫 번째 Conv 레이어 (features.0.conv)라면 패스
+                if name == "features.0.conv":
+                    print(f"Skipping variations for: {name}")  # ✅ 스킵 로그 추가
+                    continue 
+                    
                 layer.weight.data = inject_variations(layer.weight.data, sigma=sigma)
+
+# #여긴 양자화 하고 쓰기
+# def apply_variations(model, sigma):
+#     """
+#     Apply variations to quantized weights at tensor level.
+#     """
+#     with torch.no_grad():
+#         for name, layer in model.named_modules():
+#             if isinstance(layer, nn.Linear):
+#                 layer.weight.data = inject_variations(layer.weight.data, sigma=sigma)
