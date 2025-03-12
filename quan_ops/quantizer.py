@@ -6,7 +6,7 @@ import numpy as np
 import sys
 from configs.config import *
 
-from variation_injection import apply_variations
+from variation_injection import apply_variations, inject_variations
 
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)()
@@ -21,7 +21,7 @@ class quant_dorefa(torch.autograd.Function):
         # # Variation Injection (wbit 조건 추가)
         out = torch.round(input * n)
         if hasattr(NN_cfg, "inject_variation") and NN_cfg.inject_variation:
-            out = apply_variations(out, sigma=0.0, wbit=k) 
+            out = torch.round(inject_variations(out, sigma=0.3))
             out = out / n
 
         return out
