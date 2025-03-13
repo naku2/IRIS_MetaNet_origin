@@ -25,9 +25,12 @@ def apply_variations(model, sigma):
     with torch.no_grad():
         for name, layer in model.named_modules():
             if isinstance(layer, (nn.Conv2d, nn.Linear)):
-                # ✅ 첫 번째 Conv 레이어 (features.0.conv)라면 패스
+                # 첫 번째 Conv 레이어 (features.0.conv)라면 패스
                 if name == "features.0.conv":
-                    print(f"Skipping variations for: {name}")  # ✅ 스킵 로그 추가
+                    print(f"Skipping variations for: {name}")  
+                    continue 
+                if name == "features.1.conv":
+                    print(f"Skipping variations for: {name}")  
                     continue 
                     
                 layer.weight.data = inject_variations(layer.weight.data, sigma=sigma)

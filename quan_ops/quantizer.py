@@ -18,7 +18,7 @@ class quant_dorefa(torch.autograd.Function):
         # # origin
         # out = torch.round(input * n) / n
 
-        # # Variation Injection (wbit 조건 추가)
+        # # Variation Injection
         out = torch.round(input * n)
         if hasattr(NN_cfg, "inject_variation") and NN_cfg.inject_variation:
             out = torch.round(inject_variations(out, sigma=0.3))
