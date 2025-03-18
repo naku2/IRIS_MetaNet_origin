@@ -189,8 +189,8 @@ class ConvBNReLU(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.relu(x)
         x = self.bn(x)
+        x = self.relu(x)
         if self.apply_dropout:
             x = self.dropout(x)
         return x
@@ -205,26 +205,26 @@ class VGG16_BN(nn.Module):
 
         # Feature Extractor
         self.features = nn.Sequential(
-            ConvBNReLU(wbit_list, abit_list, 3, 64, drop_rate=0.3),
+            ConvBNReLU(wbit_list, abit_list, 3, 64, apply_dropout=False),
             ConvBNReLU(wbit_list, abit_list, 64, 64, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNReLU(wbit_list, abit_list, 64, 128),
+            ConvBNReLU(wbit_list, abit_list, 64, 128, apply_dropout=False),
             ConvBNReLU(wbit_list, abit_list, 128, 128, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNReLU(wbit_list, abit_list, 128, 256),
-            ConvBNReLU(wbit_list, abit_list, 256, 256),
+            ConvBNReLU(wbit_list, abit_list, 128, 256, apply_dropout=False),
+            ConvBNReLU(wbit_list, abit_list, 256, 256, apply_dropout=False),
             ConvBNReLU(wbit_list, abit_list, 256, 256, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNReLU(wbit_list, abit_list, 256, 512),
-            ConvBNReLU(wbit_list, abit_list, 512, 512),
+            ConvBNReLU(wbit_list, abit_list, 256, 512, apply_dropout=False),
+            ConvBNReLU(wbit_list, abit_list, 512, 512, apply_dropout=False),
             ConvBNReLU(wbit_list, abit_list, 512, 512, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNReLU(wbit_list, abit_list, 512, 512),
-            ConvBNReLU(wbit_list, abit_list, 512, 512),
+            ConvBNReLU(wbit_list, abit_list, 512, 512, apply_dropout=False),
+            ConvBNReLU(wbit_list, abit_list, 512, 512, apply_dropout=False),
             ConvBNReLU(wbit_list, abit_list, 512, 512, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
         )
@@ -267,8 +267,8 @@ class ConvBNActivate(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.relu(x)
         x = self.bn(x)
+        x = self.relu(x)
         if self.apply_dropout:
             x = self.dropout(x)
         return x
@@ -284,26 +284,26 @@ class VGG16Q_BN(nn.Module):
 
         # Feature Extractor
         self.features = nn.Sequential(
-            ConvBNActivate(wbit_list, abit_list, 3, 64, drop_rate=0.3),
+            ConvBNActivate(wbit_list, abit_list, 3, 64, apply_dropout=False),
             ConvBNActivate(wbit_list, abit_list, 64, 64, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNActivate(wbit_list, abit_list, 64, 128),
+            ConvBNActivate(wbit_list, abit_list, 64, 128, apply_dropout=False),
             ConvBNActivate(wbit_list, abit_list, 128, 128, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNActivate(wbit_list, abit_list, 128, 256),
-            ConvBNActivate(wbit_list, abit_list, 256, 256),
+            ConvBNActivate(wbit_list, abit_list, 128, 256, apply_dropout=False),
+            ConvBNActivate(wbit_list, abit_list, 256, 256, apply_dropout=False),
             ConvBNActivate(wbit_list, abit_list, 256, 256, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNActivate(wbit_list, abit_list, 256, 512),
-            ConvBNActivate(wbit_list, abit_list, 512, 512),
+            ConvBNActivate(wbit_list, abit_list, 256, 512, apply_dropout=False),
+            ConvBNActivate(wbit_list, abit_list, 512, 512, apply_dropout=False),
             ConvBNActivate(wbit_list, abit_list, 512, 512, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            ConvBNActivate(wbit_list, abit_list, 512, 512),
-            ConvBNActivate(wbit_list, abit_list, 512, 512),
+            ConvBNActivate(wbit_list, abit_list, 512, 512, apply_dropout=False),
+            ConvBNActivate(wbit_list, abit_list, 512, 512, apply_dropout=False),
             ConvBNActivate(wbit_list, abit_list, 512, 512, apply_dropout=False),
             nn.MaxPool2d(kernel_size=2, stride=2),
         )
